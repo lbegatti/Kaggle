@@ -43,8 +43,11 @@ pred = pd.DataFrame({
 })
 pred.to_csv('submissionTF.csv', index=False)
 
-## HYPERPARAMETER TUNNING
-tuner = tfdf.tuner.RandomSearch(num_trials=1000)
+## (automated) HYPERPARAMETER TUNING
+""" Automated hyper-parameter tuning automatically searches for the best combo of hyper parameters
+resulting in the best model performance, saving the user a lot of time.
+"""
+tuner = tfdf.tuner.RandomSearch(num_trials=1000)  # 1000 trials of tuning
 tuner.choice("min_examples", [2, 5, 7, 10])
 tuner.choice("categorical_algorithm", ["CART", "RANDOM"])
 
@@ -54,7 +57,7 @@ local_search_space.choice("max_depth", [3, 4, 5, 6, 8])
 global_search_space = tuner.choice("growing_strategy", ["BEST_FIRST_GLOBAL"], merge=True)
 global_search_space.choice("max_num_nodes", [16, 32, 64, 128, 256])
 
-tuner.choice("shrinkage", [0.02, 0.05, 0.10, 0.15])
+# tuner.choice("shrinkage", [0.02, 0.05, 0.10, 0.15])
 tuner.choice("num_candidate_attributes_ratio", [0.2, 0.5, 0.9, 1.0])
 
 tuner.choice("split_axis", ["AXIS_ALIGNED"])
@@ -64,7 +67,8 @@ oblique_space.choice("sparse_oblique_weights", ["BINARY", "CONTINUOUS"])
 oblique_space.choice("sparse_oblique_num_projections_exponent", [1.0, 1.5])
 
 # let's apply our tuning
-tuned_model = tfdf.keras.GradientBoostedTreesModel(tuner=tuner)
+tuned_model = tfdf.keras.RandomForestModel(tuner=tuner)
+# tuned_mode_XGboost = tfdf.keras.GradientBoostedTreesModel(tuner=tuner)
 tuned_model.fit(train_ds, verbose=0)
 tuned_self_evaluation = tuned_model.make_inspector().evaluation()
 print(f"Accuracy: {tuned_self_evaluation.accuracy} Loss:{tuned_self_evaluation.loss}")
@@ -74,4 +78,5 @@ pred = pd.DataFrame({
     "PassengerId": test["PassengerId"],
     "Survived": (prob_survival >= 0.5).astype(int)
 })
-pred.to_csv('submission_hyp_tuning_TF.csv', index=False)
+pred.to_csv('submission_hyp_tuning_TF_RF.csv', index=False)
+#tuned_model.make_inspector().variable_importances()["INV_MEAN_MIN_DEPTH"]

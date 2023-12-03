@@ -5,15 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from keras import Sequential
+from keras.layers import Dense, Dropout
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-import tensorflow as tf
-from keras import Sequential
-from keras import layers
-from keras.layers import Dense, Dropout
 
 # set the directory
 os.chdir('/Users/lucabegatti/Desktop/Pycharm/Kaggle/HousePrices')
@@ -157,6 +155,7 @@ print("Test MSE:", test_mse)
 dl_predictions = best_model.predict(dataset_test_final)
 dl_predictions_df = pd.DataFrame({'Id': range(1461, 1461 + len(dl_predictions)),
                                   'SalePrice': dl_predictions.flatten()})
+dl_predictions_df.to_csv('dl_predictions.csv', index=False)
 
 # Apply RF Regression and doing hyperparameter tuning
 RF = RandomForestRegressor()
@@ -164,7 +163,13 @@ RF.fit(X_train, y_train)
 scores = cross_val_score(RF, X_train, y_train, cv=10)
 scores.mean()
 
-params = {"n_estimators": [100, 200, 300, 400, 500, 1000],  # number of trees in the forest
+rf_predictions_base = RF.predict(dataset_test_final)
+rf_predictions_base_df = pd.DataFrame({"Id": range(1461, 1461 + len(rf_predictions_base)),
+                                       "SalePrice": rf_predictions_base
+                                       })
+rf_predictions_base_df.to_csv('vanilla_rf_predictions.csv', index=False)
+
+params = {"n_estimators": [100, 150, 200, 250, 300, 350, 400, 450, 500],  # number of trees in the forest
           "max_features": ['sqrt', 'log2'],  # how to decide max number of features when looking for the best split
           "max_depth": [None, 10, 20, 30, 40, 50, 100],  # max depth of the tree
           "min_samples_split": [2, 5, 10, 20, 50],  # min num of samples required to split an internal node
@@ -190,11 +195,11 @@ best_model_RF = random_search.best_estimator_
 print("\nBest model :", best_model_RF)
 
 # initalize a new RF with the optimal parameters
-RF_final = RandomForestRegressor(max_depth=20, max_features='sqrt', n_estimators=400, min_samples_split=5,
+RF_final = RandomForestRegressor(max_depth=20, max_features='log2', n_estimators=400, min_samples_split=10,
                                  min_samples_leaf=1, bootstrap=False)
 RF_final.fit(X_train, y_train)
 scores_final = cross_val_score(RF_final, X_train, y_train, cv=10)
-print(scores_final)
+# print(scores_final)
 print("\n mean of the Scores :", scores_final.mean())
 
 # predictions
